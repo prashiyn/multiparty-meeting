@@ -296,9 +296,16 @@ async function setupAuth()
 		setupOIDC(oidcIssuer);
 
 	}
-
+ 
 	app.use(passport.initialize());
 	app.use(passport.session());
+
+	function errorHandler (err, req, res, next) {
+		res.status(500)
+		res.render('error', { error: err })
+	}
+
+	app.use(errorHandler);
 
 	// loginparams
 	app.get('/auth/login', (req, res, next) =>
@@ -343,7 +350,7 @@ async function setupAuth()
 	// callback
 	app.get(
 		'/auth/callback',
-		passport.authenticate('oidc', { failureRedirect: '/auth/login' }),
+		passport.authenticate('oidc'),
 		async (req, res) =>
 		{
 			const state = JSON.parse(base64.decode(req.query.state));
