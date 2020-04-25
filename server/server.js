@@ -350,7 +350,7 @@ async function setupAuth()
 	// callback
 	app.get(
 		'/auth/callback',
-		passport.authenticate('oidc'),
+		passport.authenticate('oidc',{ failureRedirect: '/auth/logisn' }),
 		async (req, res) =>
 		{
 			const state = JSON.parse(base64.decode(req.query.state));
