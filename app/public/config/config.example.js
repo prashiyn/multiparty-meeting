@@ -32,7 +32,7 @@ var config =
 	 */
 	audioOutputSupportedBrowsers :
 	[
-		'chrome', 
+		'chrome',
 		'opera'
 	],
 	// Socket.io request timeout
@@ -84,6 +84,17 @@ var config =
 					'&:hover'       :
 					{
 						backgroundColor : '#518029'
+					}
+				}
+			},
+			MuiButton :
+			{
+				containedSecondary :
+				{
+					backgroundColor : '#B2004C',
+					'&:hover'       :
+					{
+						backgroundColor : '#800A3F'
 					}
 				}
 			}
