@@ -415,7 +415,7 @@ const mapDispatchToProps = (dispatch) =>
 		openUsersTab : () =>
 		{
 			dispatch(toolareaActions.openToolArea());
-			dispatch(toolareaActions.setToolTab('users'));
+			dispatch(toolareaActions.setToolTab({toolTab: 'users'}));
 		}
 	});
 
