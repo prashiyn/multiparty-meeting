@@ -392,7 +392,7 @@ const mapDispatchToProps = (dispatch) =>
 	return {
 		changeDisplayName : (displayName) =>
 		{
-			dispatch(settingsActions.setDisplayName(displayName));
+			dispatch(settingsActions.setDisplayName({displayName}));
 		}
 	};
 };

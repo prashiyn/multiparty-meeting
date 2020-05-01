@@ -543,12 +543,12 @@ const mapDispatchToProps = (dispatch) =>
 		toggleConsumerFullscreen : (consumer) =>
 		{
 			if (consumer)
-				dispatch(roomActions.toggleConsumerFullscreen(consumer.id));
+				dispatch(roomActions.toggleConsumerFullscreen({consumerId: consumer.id}));
 		},
 		toggleConsumerWindow : (consumer) =>
 		{
 			if (consumer)
-				dispatch(roomActions.toggleConsumerWindow(consumer.id));
+				dispatch(roomActions.toggleConsumerWindow({consumerId: consumer.id}));
 		}
 	};
 };

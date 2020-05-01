@@ -246,7 +246,8 @@ const mapDispatchToProps = (dispatch) =>
 	({
 		setToolbarsVisible : (visible) =>
 		{
-			dispatch(roomActions.setToolbarsVisible(visible));
+			dispatch(roomActions.setToolbarsVisible({toolbarsVisible: visible}));
+      ));
 		},
 		toggleToolArea : () =>
 		{

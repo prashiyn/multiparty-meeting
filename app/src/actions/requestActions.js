@@ -30,11 +30,11 @@ export const notify = ({ type = 'info', text, timeout }) =>
 
 	return (dispatch) =>
 	{
-		dispatch(notificationActions.addNotification(notification));
+		dispatch(notificationActions.addNotification({ notification }));
 
 		setTimeout(() =>
 		{
-			dispatch(notificationActions.removeNotification(notification.id));
+			dispatch(notificationActions.removeNotification({ notificationId: notification.id }));
 		}, timeout);
 	};
 };

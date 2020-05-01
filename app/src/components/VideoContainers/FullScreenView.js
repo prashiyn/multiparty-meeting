@@ -151,7 +151,7 @@ const mapDispatchToProps = (dispatch) =>
 		toggleConsumerFullscreen : (consumer) =>
 		{
 			if (consumer)
-				dispatch(roomActions.toggleConsumerFullscreen(consumer.id));
+				dispatch(roomActions.toggleConsumerFullscreen({ consumerId: consumer.id }));
 		}
 	});
 

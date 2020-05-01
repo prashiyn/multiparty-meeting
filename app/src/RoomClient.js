@@ -156,7 +156,7 @@ export default class RoomClient
 
 		// Use displayName
 		if (displayName)
-			store.dispatch(settingsActions.setDisplayName(displayName));
+			store.dispatch.settings.setDisplayName({displayName});
 
 		this._tracker = 'wss://tracker.lab.vvc.niif.hu:443';
 
@@ -206,7 +206,7 @@ export default class RoomClient
 		this._webTorrent = null;
 
 		if (defaultResolution)
-			store.dispatch(settingsActions.setVideoResolution(defaultResolution));
+			store.dispatch.settings.setVideoResolution({resolution: defaultResolution});
 
 		// Max spotlights
 		if (device.platform === 'desktop')
@@ -214,8 +214,7 @@ export default class RoomClient
 		else
 			this._maxSpotlights = mobileLastN;
 
-		store.dispatch(
-			settingsActions.setLastN(this._maxSpotlights));
+		store.dispatch.settings.setLastN({lastN: this._maxSpotlights});
 
 		// Manager of spotlight
 		this._spotlights = null;
@@ -277,7 +276,7 @@ export default class RoomClient
 		if (this._recvTransport)
 			this._recvTransport.close();
 
-		store.dispatch(roomActions.setRoomState('closed'));
+		store.dispatch.room.setRoomState('closed')
 
 		window.location = '/';
 	}
@@ -302,7 +301,7 @@ export default class RoomClient
 				{
 					case 'A': // Activate advanced mode
 					{
-						store.dispatch(settingsActions.toggleAdvancedMode());
+						store.dispatch.settings.toggleAdvancedMode()
 						store.dispatch(requestActions.notify(
 							{
 								text : intl.formatMessage({
@@ -315,7 +314,7 @@ export default class RoomClient
 
 					case '1': // Set democratic view
 					{
-						store.dispatch(roomActions.setDisplayMode('democratic'));
+						store.dispatch.room.setDisplayMode({mode: 'democratic'})
 						store.dispatch(requestActions.notify(
 							{
 								text : intl.formatMessage({
@@ -328,7 +327,7 @@ export default class RoomClient
 
 					case '2': // Set filmstrip view
 					{
-						store.dispatch(roomActions.setDisplayMode('filmstrip'));
+						store.dispatch.room.setDisplayMode({mode: 'filmstrip'})
 						store.dispatch(requestActions.notify(
 							{
 								text : intl.formatMessage({
@@ -488,10 +487,10 @@ export default class RoomClient
 
 		const { displayName, picture } = data;
 
-		store.dispatch(settingsActions.setDisplayName(displayName));
-		store.dispatch(meActions.setPicture(picture));
 
-		store.dispatch(meActions.loggedIn(true));
+			store.dispatch.settings.setDisplayName({displayName})
+			store.dispatch.me.setPicture({picture})
+		store.dispatch.me.loggedIn({flag: true})
 
 		store.dispatch(requestActions.notify(
 			{
@@ -506,9 +505,9 @@ export default class RoomClient
 	{
 		logger.debug('receiveLogoutChildWindow()');
 
-		store.dispatch(meActions.setPicture(null));
+		store.dispatch.me.setPicture(null)
 
-		store.dispatch(meActions.loggedIn(false));
+		store.dispatch.me.loggedIn({flag: false})
 
 		store.dispatch(requestActions.notify(
 			{
@@ -601,14 +600,13 @@ export default class RoomClient
 		if (!displayName)
 			displayName = 'Guest';
 
-		store.dispatch(
-			meActions.setDisplayNameInProgress(true));
+		store.dispatch.me.setDisplayNameInProgress({flag: true})
 
 		try
 		{
 			await this.sendRequest('changeDisplayName', { displayName });
 
-			store.dispatch(settingsActions.setDisplayName(displayName));
+			store.dispatch.settings.setDisplayName({displayName})
 
 			store.dispatch(requestActions.notify(
 				{
@@ -634,8 +632,7 @@ export default class RoomClient
 				}));
 		}
 
-		store.dispatch(
-			meActions.setDisplayNameInProgress(false));
+		store.dispatch.me.setDisplayNameInProgress({flag: false})
 	}
 
 	async changePicture(picture)
@@ -658,8 +655,7 @@ export default class RoomClient
 
 		try
 		{
-			store.dispatch(
-				chatActions.addUserMessage(chatMessage.text));
+			store.dispatch.chat.addUserMessage({text: chatMessage.text})
 
 			await this.sendRequest('chatMessage', { chatMessage });
 		}
@@ -700,8 +696,7 @@ export default class RoomClient
 
 	handleDownload(magnetUri)
 	{
-		store.dispatch(
-			fileActions.setFileActive(magnetUri));
+		store.dispatch.file.setFileActive({magnetUri})
 
 		const existingTorrent = this._webTorrent.get(magnetUri);
 
@@ -720,11 +715,10 @@ export default class RoomClient
 		// same file was sent multiple times.
 		if (torrent.progress === 1)
 		{
-			return store.dispatch(
-				fileActions.setFileDone(
-					torrent.magnetURI,
-					torrent.files
-				));
+			return store.dispatch.setFileDone({
+					magnetUri: torrent.magnetURI,
+					sharedFiles: torrent.files
+				})
 		}
 
 		let lastMove = 0;
@@ -733,11 +727,10 @@ export default class RoomClient
 		{
 			if (Date.now() - lastMove > 1000)
 			{
-				store.dispatch(
-					fileActions.setFileProgress(
-						torrent.magnetURI,
-						torrent.progress
-					));
+				store.dispatch.file.setFileProgress({
+						magnetUri: torrent.magnetURI,
+						progress: torrent.progress
+					})
 
 				lastMove = Date.now();
 			}
@@ -745,11 +738,10 @@ export default class RoomClient
 
 		torrent.on('done', () => 
 		{
-			store.dispatch(
-				fileActions.setFileDone(
+			store.dispatch.file.setFileDone(
 					torrent.magnetURI,
 					torrent.files
-				));
+				)
 		});
 	}
 
@@ -797,10 +789,10 @@ export default class RoomClient
 							})
 						}));
 
-					store.dispatch(fileActions.addFile(
-						this._peerId,
-						newTorrent.magnetURI
-					));
+					store.dispatch.file.addFile({
+						peerId: this._peerId,
+						magnetUri: newTorrent.magnetURI
+          })
 
 					this._sendFile(newTorrent.magnetURI);
 				});
@@ -846,11 +838,9 @@ export default class RoomClient
 				accessCode
 			} = await this.sendRequest('serverHistory');
 
-			(chatHistory.length > 0) && store.dispatch(
-				chatActions.addChatHistory(chatHistory));
+			(chatHistory.length > 0) && store.dispatch.chat.addChatHistory({chatHistory})
 
-			(fileHistory.length > 0) && store.dispatch(
-				fileActions.addFileHistory(fileHistory));
+			(fileHistory.length > 0) && store.dispatch.file.addFileHistory({fileHistory})
 
 			if (lastNHistory.length > 0)
 			{
@@ -865,21 +855,15 @@ export default class RoomClient
 			}
 
 			locked ? 
-				store.dispatch(roomActions.setRoomLocked()) :
-				store.dispatch(roomActions.setRoomUnLocked());
+				store.dispatch.room.setRoomLocked() : store.dispatch.room.setRoomUnLocked()
 
-			(lobbyPeers.length > 0) && lobbyPeers.forEach((peer) =>
-			{
-				store.dispatch(
-					lobbyPeerActions.addLobbyPeer(peer.peerId));
-				store.dispatch(
-					lobbyPeerActions.setLobbyPeerDisplayName(peer.displayName, peer.peerId));
-				store.dispatch(
-					lobbyPeerActions.setLobbyPeerPicture(peer.picture));
+			(lobbyPeers.length > 0) && lobbyPeers.forEach((peer) => {
+				store.dispatch.lobbyPeer.addLobbyPeer({peerId: peer.peerId})
+				store.dispatch.lobbyPeer.setLobbyPeerDisplayName({displayName: peer.displayName, peerId: peer.peerId})
+				store.dispatch.lobbyPeer.setLobbyPeerPicture({picture: peer.picture, peerId: peer.peerId})
 			});
 
-			(accessCode != null) && store.dispatch(
-				roomActions.setAccessCode(accessCode));
+			(accessCode != null) && store.dispatch.room.setAccessCode({accessCode})
 		}
 		catch (error)
 		{
@@ -898,8 +882,7 @@ export default class RoomClient
 			await this.sendRequest(
 				'pauseProducer', { producerId: this._micProducer.id });
 
-			store.dispatch(
-				producerActions.setProducerPaused(this._micProducer.id));
+			store.dispatch.producer.setProducerPaused({producerId: this._micProducer.id})
 		}
 		catch (error)
 		{
@@ -933,8 +916,7 @@ export default class RoomClient
 				await this.sendRequest(
 					'resumeProducer', { producerId: this._micProducer.id });
 	
-				store.dispatch(
-					producerActions.setProducerResumed(this._micProducer.id));
+				store.dispatch.producer.setProducerResumed({producerId: this._micProducer.id})
 			}
 			catch (error)
 			{
@@ -955,9 +937,7 @@ export default class RoomClient
 	changeMaxSpotlights(maxSpotlights)
 	{
 		this._spotlights.maxSpotlights = maxSpotlights;
-
-		store.dispatch(
-			settingsActions.setLastN(maxSpotlights));
+		store.dispatch.settings.setLastN({lastN: maxSpotlights})
 	}
 
 	// Updated consumers based on spotlights
@@ -1008,8 +988,7 @@ export default class RoomClient
 	{
 		logger.debug('changeAudioDevice() [deviceId: %s]', deviceId);
 
-		store.dispatch(
-			meActions.setAudioInProgress(true));
+		store.dispatch.me.setAudioInProgress({flag: true})
 
 		try
 		{
@@ -1082,22 +1061,22 @@ export default class RoomClient
 				{
 					this._micProducer.volume = volume;
 
-					store.dispatch(peerVolumeActions.setPeerVolume(this._peerId, volume));
+					store.dispatch.peerVolume.setPeerVolume({peerId: this._peerId, volume})
 				}
 			});
 			this._hark.on('speaking', function() 
 			{
-				store.dispatch(meActions.setIsSpeaking(true));
+				store.dispatch.me.setIsSpeaking(true)
 			});
 			this._hark.on('stopped_speaking', function() 
 			{
-				store.dispatch(meActions.setIsSpeaking(false));
+				store.dispatch.me.setIsSpeaking(false)
 			});
 			if (this._micProducer && this._micProducer.id)
 				store.dispatch(
 					producerActions.setProducerTrack(this._micProducer.id, track));
 
-			store.dispatch(settingsActions.setSelectedAudioDevice(deviceId));
+			store.dispatch.settings.setSelectedAudioDevice({deviceId})
 
 			await this._updateAudioDevices();
 		}
@@ -1106,8 +1085,7 @@ export default class RoomClient
 			logger.error('changeAudioDevice() failed: %o', error);
 		}
 
-		store.dispatch(
-			meActions.setAudioInProgress(false));
+		store.dispatch.me.setAudioInProgress({flag: false})
 	}
 
 	async changeAudioOutputDevice(deviceId)
@@ -1145,9 +1123,7 @@ export default class RoomClient
 	{
 		logger.debug('changeVideoResolution() [resolution: %s]', resolution);
 
-		store.dispatch(
-			meActions.setWebcamInProgress(true));
-
+		store.dispatch.me.setWebcamInProgress({flag: true})
 		try
 		{
 			const deviceId = await this._getWebcamDeviceId();
@@ -1190,9 +1166,8 @@ export default class RoomClient
 							}
 						});	
 					}
+					store.dispatch.producer.setProducerTrack({producerId: this._webcamProducer.id, track})
 
-					store.dispatch(
-						producerActions.setProducerTrack(this._webcamProducer.id, track));
 				}
 				else
 				{
@@ -1204,8 +1179,8 @@ export default class RoomClient
 			{
 				logger.warn('getUserMedia Error: Stream is null!');
 			}
-			store.dispatch(settingsActions.setSelectedWebcamDevice(deviceId));
-			store.dispatch(settingsActions.setVideoResolution(resolution));
+			store.dispatch.settings.setSelectedWebcamDevice({deviceId})
+			store.dispatch.settings.setVideoResolution({resolution})
 
 			await this._updateWebcams();
 		}
@@ -1214,16 +1189,14 @@ export default class RoomClient
 			logger.error('changeVideoResolution() failed: %o', error);
 		}
 
-		store.dispatch(
-			meActions.setWebcamInProgress(false));
+		store.dispatch.me.setWebcamInProgress({flag: false})
 	}
 
 	async changeWebcam(deviceId)
 	{
 		logger.debug('changeWebcam() [deviceId: %s]', deviceId);
 
-		store.dispatch(
-			meActions.setWebcamInProgress(true));
+		store.dispatch.me.setWebcamInProgress({flag: true})
 
 		try
 		{
@@ -1271,8 +1244,7 @@ export default class RoomClient
 						});	
 					}
 		
-					store.dispatch(
-						producerActions.setProducerTrack(this._webcamProducer.id, track));
+					store.dispatch.producer.setProducerTrack({producerId: this._webcamProducer.id, track})
 
 				}
 				else
@@ -1286,7 +1258,7 @@ export default class RoomClient
 				logger.warn('getUserMedia Error: Stream is null!');
 			}
 
-			store.dispatch(settingsActions.setSelectedWebcamDevice(deviceId));
+			store.dispatch.settings.setSelectedWebcamDevice({deviceId})
 
 			await this._updateWebcams();
 		}
@@ -1295,8 +1267,7 @@ export default class RoomClient
 			logger.error('changeWebcam() failed: %o', error);
 		}
 
-		store.dispatch(
-			meActions.setWebcamInProgress(false));
+		store.dispatch.me.setWebcamInProgress({flag: false})
 	}
 
 	setSelectedPeer(peerId)
@@ -1305,16 +1276,14 @@ export default class RoomClient
 
 		this._spotlights.setPeerSpotlight(peerId);
 
-		store.dispatch(
-			roomActions.setSelectedPeer(peerId));
+		store.dispatch.room.setSelectedPeer({selectedPeerId: peerId})
 	}
 
 	async promoteLobbyPeer(peerId)
 	{
 		logger.debug('promoteLobbyPeer() [peerId:"%s"]', peerId);
 
-		store.dispatch(
-			lobbyPeerActions.setLobbyPeerPromotionInProgress(peerId, true));
+		store.dispatch.lobbyPeer.setLobbyPeerPromotionInProgress({ peerId: peerId, flag: true})
 
 		try
 		{
@@ -1325,8 +1294,7 @@ export default class RoomClient
 			logger.error('promoteLobbyPeer() failed: %o', error);
 		}
 
-		store.dispatch(
-			lobbyPeerActions.setLobbyPeerPromotionInProgress(peerId, false));
+		store.dispatch.lobbyPeer.setLobbyPeerPromotionInProgress({peerId: peerId, flag: false})
 	}
 
 	async clearChat()
@@ -1463,16 +1431,13 @@ export default class RoomClient
 			type
 		);
 
-		if (type === 'mic')
-			store.dispatch(
-				peerActions.setPeerAudioInProgress(peerId, true));
-		else if (type === 'webcam')
-			store.dispatch(
-				peerActions.setPeerVideoInProgress(peerId, true));
-		else if (type === 'screen')
-			store.dispatch(
-				peerActions.setPeerScreenInProgress(peerId, true));
-
+		if (type === 'mic') {
+			store.dispatch.peer.setPeerAudioInProgress({peerId, flag: true})
+		} else if (type === 'webcam') {
+			store.dispatch.peer.setPeerVideoInProgress({peerId, flag: true})
+		} else if (type === 'screen') {
+      store.dispatch.peer.setPeerScreenInProgress({peerId, flag: true})
+    }
 		try
 		{
 			for (const consumer of this._consumers.values())
@@ -1494,14 +1459,11 @@ export default class RoomClient
 		}
 
 		if (type === 'mic')
-			store.dispatch(
-				peerActions.setPeerAudioInProgress(peerId, false));
+			store.dispatch.peer.setPeerAudioInProgress({peerId, flag: false})
 		else if (type === 'webcam')
-			store.dispatch(
-				peerActions.setPeerVideoInProgress(peerId, false));
+			store.dispatch.peer.setPeerVideoInProgress({peerId, flag: false})
 		else if (type === 'screen')
-			store.dispatch(
-				peerActions.setPeerScreenInProgress(peerId, false));
+			store.dispatch.peer.setPeerScreenInProgress({peerId, flag: false})
 	}
 
 	async _pauseConsumer(consumer)
@@ -1517,8 +1479,7 @@ export default class RoomClient
 
 			consumer.pause();
 
-			store.dispatch(
-				consumerActions.setConsumerPaused(consumer.id, 'local'));
+			store.dispatch.consumer.setConsumerPaused({ consumerId: consumer.id, originator: 'local' })
 		}
 		catch (error)
 		{
@@ -1539,8 +1500,7 @@ export default class RoomClient
 
 			consumer.resume();
 
-			store.dispatch(
-				consumerActions.setConsumerResumed(consumer.id, 'local'));
+			store.dispatch.consumer.setConsumerResumed({consumerId: consumer.id, originator: 'local'})
 		}
 		catch (error)
 		{
@@ -1552,26 +1512,23 @@ export default class RoomClient
 	{
 		logger.debug('sendRaiseHandState: ', state);
 
-		store.dispatch(
-			meActions.setMyRaiseHandStateInProgress(true));
+		store.dispatchme.setMyRaiseHandStateInProgress({ flag: true })
 
 		try
 		{
 			await this.sendRequest('raiseHand', { raiseHandState: state });
 
-			store.dispatch(
-				meActions.setMyRaiseHandState(state));
+			store.dispatch.me.setMyRaiseHandState({ flag: state})
 		}
 		catch (error)
 		{
 			logger.error('sendRaiseHandState() | failed: %o', error);
 
 			// We need to refresh the component for it to render changed state
-			store.dispatch(meActions.setMyRaiseHandState(!state));
+			store.dispatch.me.setMyRaiseHandState({ flag: !state })
 		}
 
-		store.dispatch(
-			meActions.setMyRaiseHandStateInProgress(false));
+		store.dispatch.me.setMyRaiseHandStateInProgress({flag: false})
 	}
 
 	async setMaxSendingSpatialLayer(spatialLayer)
@@ -1602,8 +1559,9 @@ export default class RoomClient
 			await this.sendRequest(
 				'setConsumerPreferedLayers', { consumerId, spatialLayer, temporalLayer });
 
-			store.dispatch(consumerActions.setConsumerPreferredLayers(
-				consumerId, spatialLayer, temporalLayer));
+			store.dispatch.consumer.setConsumerPreferredLayers({
+        consumerId, spatialLayer, temporalLayer
+      })
 		}
 		catch (error)
 		{
@@ -1621,7 +1579,7 @@ export default class RoomClient
 		{
 			await this.sendRequest('setConsumerPriority', { consumerId, priority });
 
-			store.dispatch(consumerActions.setConsumerPriority(consumerId, priority));
+			store.dispatch.consumer.setConsumerPriority({consumerId, priority})
 		}
 		catch (error)
 		{
@@ -1701,7 +1659,7 @@ export default class RoomClient
 
 		this._roomId = roomId;
 
-		store.dispatch(roomActions.setRoomName(roomId));
+		store.dispatch.room.setRoomName({roomId})
 
 		this._signalingUrl = getSignalingUrl(this._peerId, roomId);
 
@@ -1711,7 +1669,7 @@ export default class RoomClient
 
 		this._spotlights = new Spotlights(this._maxSpotlights, this._signalingSocket);
 
-		store.dispatch(roomActions.setRoomState('connecting'));
+		store.dispatch.room.setRoomState('connecting')
 
 		this._signalingSocket.on('connect', () =>
 		{
@@ -1820,7 +1778,7 @@ export default class RoomClient
 					})
 				}));
 
-			store.dispatch(roomActions.setRoomState('connected'));
+			store.dispatch.room.setRoomState('connected')
 		});
 
 		this._signalingSocket.on('request', async (request, cb) =>
@@ -1876,25 +1834,26 @@ export default class RoomClient
 						mediasoupClient.parseScalabilityMode(
 							consumer.rtpParameters.encodings[0].scalabilityMode);
 
-					store.dispatch(consumerActions.addConsumer(
-						{
-							id                     : consumer.id,
-							peerId                 : peerId,
-							kind                   : kind,
-							type                   : type,
-							locallyPaused          : false,
-							remotelyPaused         : producerPaused,
-							rtpParameters          : consumer.rtpParameters,
-							source                 : consumer.appData.source,
-							spatialLayers          : spatialLayers,
-							temporalLayers         : temporalLayers,
-							preferredSpatialLayer  : spatialLayers - 1,
-							preferredTemporalLayer : temporalLayers - 1,
-							priority               : 1,
-							codec                  : consumer.rtpParameters.codecs[0].mimeType.split('/')[1],
-							track                  : consumer.track
-						},
-						peerId));
+					store.dispatch.consumer.addConsumer({
+            consumer: {
+                id                     : consumer.id,
+                peerId                 : peerId,
+                kind                   : kind,
+                type                   : type,
+                locallyPaused          : false,
+                remotelyPaused         : producerPaused,
+                rtpParameters          : consumer.rtpParameters,
+                source                 : consumer.appData.source,
+                spatialLayers          : spatialLayers,
+                temporalLayers         : temporalLayers,
+                preferredSpatialLayer  : spatialLayers - 1,
+                preferredTemporalLayer : temporalLayers - 1,
+                priority               : 1,
+                codec                  : consumer.rtpParameters.codecs[0].mimeType.split('/')[1],
+                track                  : consumer.track
+              },
+              peerId
+          })
 
 					// We are ready. Answer the request so the server will
 					// resume this Consumer (which was paused for now).
@@ -1932,7 +1891,7 @@ export default class RoomClient
 							{
 								consumer.volume = volume;
 
-								store.dispatch(peerVolumeActions.setPeerVolume(peerId, volume));
+								store.dispatch.peerVolume.setPeerVolume({peerId, volume})
 							}
 						});
 					}
@@ -1961,7 +1920,7 @@ export default class RoomClient
 				{
 					case 'enteredLobby':
 					{
-						store.dispatch(roomActions.setInLobby(true));
+						store.dispatch.room.setInLobby({inLobby: true})
 
 						const { displayName } = store.getState().settings;
 						const { picture } = store.getState().me;
@@ -1973,7 +1932,7 @@ export default class RoomClient
 
 					case 'signInRequired':
 					{
-						store.dispatch(roomActions.setSignInRequired(true));
+						store.dispatch.room.setSignInRequired({signInRequired: true})
 	
 						break;
 					}
@@ -1984,8 +1943,8 @@ export default class RoomClient
 
 						this._turnServers = turnServers;
 
-						store.dispatch(roomActions.toggleJoined());
-						store.dispatch(roomActions.setInLobby(false));
+						store.dispatch.room.toggleJoined()
+						store.dispatch.room.setInLobby({inLobby: false})
 	
 						await this._joinRoom({ joinVideo });
 	
@@ -2001,8 +1960,7 @@ export default class RoomClient
 	
 					case 'lockRoom':
 					{
-						store.dispatch(
-							roomActions.setRoomLocked());
+						store.dispatch.room.setRoomLocked()
 	
 						store.dispatch(requestActions.notify(
 							{
@@ -2017,8 +1975,7 @@ export default class RoomClient
 	
 					case 'unlockRoom':
 					{
-						store.dispatch(
-							roomActions.setRoomUnLocked());
+						store.dispatch.room.setRoomUnLocked()
 						
 						store.dispatch(requestActions.notify(
 							{
@@ -2035,10 +1992,8 @@ export default class RoomClient
 					{
 						const { peerId } = notification.data;
 	
-						store.dispatch(
-							lobbyPeerActions.addLobbyPeer(peerId));
-						store.dispatch(
-							roomActions.setToolbarsVisible(true));
+						store.dis.lobbyPeer.addLobbyPeer({peerId})
+						store.dispatch.room.setToolbarsVisible({toolbarsVisible: true})
 	
 						store.dispatch(requestActions.notify(
 							{
@@ -2055,8 +2010,7 @@ export default class RoomClient
 					{
 						const { peerId } = notification.data;
 	
-						store.dispatch(
-							lobbyPeerActions.removeLobbyPeer(peerId));
+						store.dispatch.lobbyPeer.removeLobbyPeer({peerId})
 	
 						store.dispatch(requestActions.notify(
 							{
@@ -2073,8 +2027,7 @@ export default class RoomClient
 					{
 						const { peerId } = notification.data;
 
-						store.dispatch(
-							lobbyPeerActions.removeLobbyPeer(peerId));
+						store.dispatch.lobbyPeer.removeLobbyPeer({peerId})
 
 						break;
 					}
@@ -2083,8 +2036,7 @@ export default class RoomClient
 					{
 						const { peerId, displayName } = notification.data;
 
-						store.dispatch(
-							lobbyPeerActions.setLobbyPeerDisplayName(displayName, peerId));
+						store.dispatch.lobbyPeerActions.setLobbyPeerDisplayName({displayName, peerId})
 
 						store.dispatch(requestActions.notify(
 							{
@@ -2103,8 +2055,7 @@ export default class RoomClient
 					{
 						const { peerId, picture } = notification.data;
 	
-						store.dispatch(
-							lobbyPeerActions.setLobbyPeerPicture(picture, peerId));
+						store.dispatch.lobbyPeer.setLobbyPeerPicture({picture, peerId})
 
 						store.dispatch(requestActions.notify(
 							{
@@ -2121,8 +2072,7 @@ export default class RoomClient
 					{
 						const { accessCode } = notification.data;
 	
-						store.dispatch(
-							roomActions.setAccessCode(accessCode));
+						store.dispatch.room.setAccessCode({accessCode})
 
 						store.dispatch(requestActions.notify(
 							{
@@ -2139,8 +2089,7 @@ export default class RoomClient
 					{
 						const { joinByAccessCode } = notification.data;
 						
-						store.dispatch(
-							roomActions.setJoinByAccessCode(joinByAccessCode));
+						store.dispatch.room.setJoinByAccessCode({joinByAccessCode})
 						
 						if (joinByAccessCode)
 						{
@@ -2170,8 +2119,7 @@ export default class RoomClient
 					{
 						const { peerId } = notification.data;
 	
-						store.dispatch(
-							roomActions.setRoomActiveSpeaker(peerId));
+						store.dispatch.room.setRoomActiveSpeaker({peerId})
 
 						if (peerId && peerId !== this._peerId)
 							this._spotlights.handleActiveSpeaker(peerId);
@@ -2183,8 +2131,7 @@ export default class RoomClient
 					{
 						const { peerId, displayName, oldDisplayName } = notification.data;
 
-						store.dispatch(
-							peerActions.setPeerDisplayName(displayName, peerId));
+						store.dispatch.peer.setPeerDisplayName({displayName, peerId})
 
 						store.dispatch(requestActions.notify(
 							{
@@ -2204,17 +2151,15 @@ export default class RoomClient
 					{
 						const { peerId, picture } = notification.data;
 
-						store.dispatch(peerActions.setPeerPicture(peerId, picture));
+						store.dispatch.peer.setPeerPicture({peerId, picture})
 
 						break;
 					}
-
 					case 'chatMessage':
 					{
 						const { peerId, chatMessage } = notification.data;
 
-						store.dispatch(
-							chatActions.addResponseMessage({ ...chatMessage, peerId }));
+						store.dispatch.chat.addResponseMessage({ message: { ...chatMessage, peerId } })
 
 						if (
 							!store.getState().toolarea.toolAreaOpen ||
@@ -2222,8 +2167,7 @@ export default class RoomClient
 							store.getState().toolarea.currentToolTab !== 'chat')
 						) // Make sound
 						{
-							store.dispatch(
-								roomActions.setToolbarsVisible(true));
+							store.dispatch.room.setToolbarsVisible({toolbarsVisible: true}))
 							this._soundNotification();
 						}
 
@@ -2249,7 +2193,7 @@ export default class RoomClient
 					{
 						const { peerId, magnetUri } = notification.data;
 
-						store.dispatch(fileActions.addFile(peerId, magnetUri));
+						store.dispatch(fileActions.addFile({peerId, magnetUri}));
 
 						store.dispatch(requestActions.notify(
 							{
@@ -2266,7 +2210,8 @@ export default class RoomClient
 						) // Make sound
 						{
 							store.dispatch(
-								roomActions.setToolbarsVisible(true));
+								roomActions.setToolbarsVisible({toolbarsVisible: true}));
+                ));
 							this._soundNotification();
 						}
 
@@ -2293,7 +2238,7 @@ export default class RoomClient
 						const { producerId, score } = notification.data;
 
 						store.dispatch(
-							producerActions.setProducerScore(producerId, score));
+							producerActions.setProducerScore({producerId, score}));
 
 						break;
 					}
@@ -2323,7 +2268,7 @@ export default class RoomClient
 						const { peerId } = notification.data;
 
 						store.dispatch(
-							peerActions.removePeer(peerId));
+							peerActions.removePeer({peerId}));
 
 						break;
 					}
@@ -2346,7 +2291,7 @@ export default class RoomClient
 						const { peerId } = consumer.appData;
 	
 						store.dispatch(
-							consumerActions.removeConsumer(consumerId, peerId));
+							consumerActions.removeConsumer({ consumerId, peerId }));
 	
 						break;
 					}
@@ -2360,7 +2305,7 @@ export default class RoomClient
 							break;
 	
 						store.dispatch(
-							consumerActions.setConsumerPaused(consumerId, 'remote'));
+							consumerActions.setConsumerPaused({ consumerId, originator: 'remote' }));
 
 						break;
 					}
@@ -2374,7 +2319,7 @@ export default class RoomClient
 							break;
 	
 						store.dispatch(
-							consumerActions.setConsumerResumed(consumerId, 'remote'));
+							consumerActions.setConsumerResumed({consumerId, originator: 'remote'}));
 	
 						break;
 					}
@@ -2387,8 +2332,11 @@ export default class RoomClient
 						if (!consumer)
 							break;
 	
-						store.dispatch(consumerActions.setConsumerCurrentLayers(
-							consumerId, spatialLayer, temporalLayer));
+						store.dispatch(consumerActions.setConsumerCurrentLayers({
+              consumerId,
+              spatialLayer,
+              temporalLayer
+            }));
 	
 						break;
 					}
@@ -2398,8 +2346,7 @@ export default class RoomClient
 						const { consumerId, score } = notification.data;
 	
 						store.dispatch(
-							consumerActions.setConsumerScore(consumerId, score));
-	
+							consumerActions.setConsumerScore({consumerId, score}));
 						break;
 					}
 
@@ -2732,7 +2679,7 @@ export default class RoomClient
 
 			this._spotlights.on('spotlights-updated', (spotlights) =>
 			{
-				store.dispatch(roomActions.setSpotlights(spotlights));
+				store.dispatch(roomActions.setSpotlights({spotlights}));
 				this.updateSpotlights(spotlights);
 			});
 
@@ -2875,7 +2822,7 @@ export default class RoomClient
 			await this.sendRequest('setAccessCode', { accessCode: code });
 
 			store.dispatch(
-				roomActions.setAccessCode(code));
+				roomActions.setAccessCode({accessCode: code}));
 
 			store.dispatch(requestActions.notify(
 				{
@@ -2902,7 +2849,7 @@ export default class RoomClient
 			await this.sendRequest('setJoinByAccessCode', { joinByAccessCode: value });
 
 			store.dispatch(
-				roomActions.setJoinByAccessCode(value));
+				roomActions.setJoinByAccessCode({joinByAccessCode: value}));
 
 			store.dispatch(requestActions.notify(
 				{
@@ -2935,7 +2882,7 @@ export default class RoomClient
 		let track;
 
 		store.dispatch(
-			meActions.setAudioInProgress(true));
+			meActions.setAudioInProgress({flag: true}));
 
 		try
 		{
@@ -2987,7 +2934,7 @@ export default class RoomClient
 					codec         : this._micProducer.rtpParameters.codecs[0].mimeType.split('/')[1]
 				}));
 
-			store.dispatch(settingsActions.setSelectedAudioDevice(deviceId));
+			store.dispatch(settingsActions.setSelectedAudioDevice({deviceId}));
 
 			await this._updateAudioDevices();
 
@@ -3047,7 +2994,7 @@ export default class RoomClient
 				{
 					this._micProducer.volume = volume;
 
-					store.dispatch(peerVolumeActions.setPeerVolume(this._peerId, volume));
+					store.dispatch(peerVolumeActions.setPeerVolume({peerId: this._peerId, volume}));
 				}
 			});
 			this._hark.on('speaking', function() 
@@ -3078,7 +3025,7 @@ export default class RoomClient
 		}
 
 		store.dispatch(
-			meActions.setAudioInProgress(false));
+			meActions.setAudioInProgress({flag: false}));
 	}
 
 	async disableMic()
@@ -3088,12 +3035,12 @@ export default class RoomClient
 		if (!this._micProducer)
 			return;
 
-		store.dispatch(meActions.setAudioInProgress(true));
+		store.dispatch(meActions.setAudioInProgress({flag: true}));
 
 		this._micProducer.close();
 
 		store.dispatch(
-			producerActions.removeProducer(this._micProducer.id));
+			producerActions.removeProducer({producerId: this._micProducer.id}));
 
 		try
 		{
@@ -3107,7 +3054,7 @@ export default class RoomClient
 
 		this._micProducer = null;
 
-		store.dispatch(meActions.setAudioInProgress(false));
+		store.dispatch(meActions.setAudioInProgress({flag: false}));
 	}
 
 	async enableScreenSharing()
@@ -3124,7 +3071,7 @@ export default class RoomClient
 
 		let track;
 
-		store.dispatch(meActions.setScreenShareInProgress(true));
+		store.dispatch(meActions.setScreenShareInProgress({flag: true}));
 
 		try
 		{
@@ -3243,7 +3190,7 @@ export default class RoomClient
 				track.stop();
 		}
 
-		store.dispatch(meActions.setScreenShareInProgress(false));
+		store.dispatch(meActions.setScreenShareInProgress({flag: false}));
 	}
 
 	async disableScreenSharing()
@@ -3253,12 +3200,12 @@ export default class RoomClient
 		if (!this._screenSharingProducer)
 			return;
 
-		store.dispatch(meActions.setScreenShareInProgress(true));
+		store.dispatch(meActions.setScreenShareInProgress({flag: true}));
 
 		this._screenSharingProducer.close();
 
 		store.dispatch(
-			producerActions.removeProducer(this._screenSharingProducer.id));
+			producerActions.removeProducer({producerId: this._screenSharingProducer.id}));
 
 		try
 		{
@@ -3272,7 +3219,7 @@ export default class RoomClient
 
 		this._screenSharingProducer = null;
 
-		store.dispatch(meActions.setScreenShareInProgress(false));
+		store.dispatch(meActions.setScreenShareInProgress({flag: false}));
 	}
 
 	async enableWebcam()
@@ -3291,7 +3238,7 @@ export default class RoomClient
 		let track;
 
 		store.dispatch(
-			meActions.setWebcamInProgress(true));
+			meActions.setWebcamInProgress({flag: true}));
 
 		try
 		{
@@ -3373,7 +3320,7 @@ export default class RoomClient
 					codec         : this._webcamProducer.rtpParameters.codecs[0].mimeType.split('/')[1]
 				}));
 
-			store.dispatch(settingsActions.setSelectedWebcamDevice(deviceId));
+			store.dispatch(settingsActions.setSelectedWebcamDevice({deviceId}));
 
 			await this._updateWebcams();
 
@@ -3427,12 +3374,12 @@ export default class RoomClient
 		if (!this._webcamProducer)
 			return;
 
-		store.dispatch(meActions.setWebcamInProgress(true));
+		store.dispatch(meActions.setWebcamInProgress({flag: true}));
 
 		this._webcamProducer.close();
 
 		store.dispatch(
-			producerActions.removeProducer(this._webcamProducer.id));
+			producerActions.removeProducer({producerId: this._webcamProducer.id}));
 
 		try
 		{
@@ -3446,7 +3393,7 @@ export default class RoomClient
 
 		this._webcamProducer = null;
 
-		store.dispatch(meActions.setWebcamInProgress(false));
+		store.dispatch(meActions.setWebcamInProgress({flag: false}));
 	}
 
 	async _updateAudioDevices()
@@ -3471,7 +3418,7 @@ export default class RoomClient
 			}
 
 			store.dispatch(
-				meActions.setAudioDevices(this._audioDevices));
+				meActions.setAudioDevices({devices: this._audioDevices}));
 		}
 		catch (error)
 		{
@@ -3501,7 +3448,7 @@ export default class RoomClient
 			}
 
 			store.dispatch(
-				meActions.setWebcamDevices(this._webcams));
+				meActions.setWebcamDevices({ devices: this._webcams}));
 		}
 		catch (error)
 		{
